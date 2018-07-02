@@ -1,4 +1,4 @@
-# Buoy Acquisition Makers
+# Buoy Acquisition Markers
 > Close range drone buoy acquisition system
 
 
