@@ -35,7 +35,7 @@ python arcuo_tracker.py
 
 Matthew Kenney – [@baykenney](https://twitter.com/baykenney) – mk365@duke.edu
 
-[https://github.com/Duke-Ocean-XPrize/buoy-yolo-model](https://github.com/Duke-Ocean-XPrize/buoy-marker-model)
+[https://github.com/Duke-Ocean-XPrize/buoy-marker-model](https://github.com/Duke-Ocean-XPrize/buoy-marker-model)
 
 ## Contributing
 

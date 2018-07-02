@@ -127,7 +127,7 @@ while (True):
         
 
         print("midpoint X: {}, Y: {}".format(midpointX, midpointY))
-        s.send("x:{}, y:{}, z:{}".format(midpointX, midpointY, distance).encode())
+        s.send("{}/{}/{}".format(midpointX, midpointY, distance).encode())
 
 
         aruco.drawAxis(frame, mtx, dist, rvec[0], tvec[0], 0.1) #Draw Axis
@@ -136,6 +136,10 @@ while (True):
 
         ###### DRAW ID #####
         cv2.putText(frame, "Id: " + str(ids), (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
+    else:
+        print("midpoint X: n, Y: n")
+        s.send(b"/n/n/n")
+
 
 
         # Display the resulting frame
