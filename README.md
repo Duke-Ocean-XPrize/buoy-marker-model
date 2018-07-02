@@ -10,18 +10,20 @@ OS X & Linux:
 
 ```sh
 python install -r requirements.txt
-python arcuo_tracker_arduino.py
+python server.py
+python arcuo_tracker.py
 ```
 
 ## Usage example
 
-Run python arcuo_tracker_arduino.py. Starts OpenCV. Find the fiducial markers. 
+Run python arcuo_tracker.py. Starts OpenCV. Find the fiducial markers. Pass data to server via Serial
 
 ## Development setup
 
 ```sh
 python install -r requirements.txt
-python arcuo_tracker_arduino.py
+python server.py
+python arcuo_tracker.py
 ```
 
 ## Release History
