@@ -4,6 +4,31 @@
 
 Drone buoy aquisition model. 
 
+## How to Run with OpenCV
+
+To run with openCV use this image: https://www.dropbox.com/s/loaaepfcw0dh9lz/PiBackup.img?dl=0
+
+OpenCV should be pre-installed
+
+Run:
+
+```sh
+cd ~/Desktop/buoy-marker-model
+source ~/.profile
+workon cv
+```
+
+This should drop you into an env with openCV
+
+To test that the install is working
+
+```sh
+python
+>> import cv2
+```
+
+You should now be ready to install requirements and run arcuo_tracker
+
 ## Installation
 
 OS X & Linux:
@@ -13,6 +38,9 @@ python install -r requirements.txt
 python server.py
 python arcuo_tracker.py
 ```
+
+
+
 
 ## Usage example
 
