@@ -4,6 +4,7 @@ import cv2.aruco as aruco
 import glob
 import socket
 import math
+import yaml
 from polylabel import polylabel
 
 #Setting variables
@@ -15,23 +16,20 @@ BUFFER_SIZE = 1024
 FRAME_WIDTH = 480
 FRAME_HEIGHT = 640
 
+#Retrieving Distortion and 3D Matrices
+try:
+    calibration_file = open("calibration_data.yaml", 'r')
+    data_dict = yaml.load(calibration_file)
+    mtx = data_dict["mtx"]
+    dist = data_dict["dist"]
+except Exception as e:
+    print("Calibration Failure: {}".format(e))
 #Setting up socket connection
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((TCP_IP, TCP_PORT))
 
 #Setting up video-capture on camera with ID = 0
 cap = cv2.VideoCapture(0)
-
-# termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((6*7,3), np.float32)
-objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
-
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
 
 def inversePerspective(rvec, tvec): 
     rvec, tvec = rvec.reshape((3, 1)), tvec.reshape((3, 1))
@@ -52,27 +50,6 @@ def floor_midpoint(midpoint):
 def avg_of_vectors(vector_list):
     return sum(vector_list)/float(len(vector_list))
 
-#Aruco image calibration
-images = glob.glob('calib_images/*.jpg')
-for fname in images:
-    img = cv2.imread(fname)
-    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-    ret, corners = cv2.findChessboardCorners(gray, (7,6),None)
-
-    # If found, add object points, image points (after refining them)
-    if ret == True:
-        objpoints.append(objp)
-
-        corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
-        imgpoints.append(corners2)
-
-        # Draw and display the corners
-        img = cv2.drawChessboardCorners(img, (7,6), corners2,ret)
-
-
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
-
 while (True):
     ret, frame = cap.read()
     # operations on the frame come here
@@ -89,7 +66,7 @@ while (True):
     font = cv2.FONT_HERSHEY_SIMPLEX #font for displaying text (below)
 
     if np.all(ids != None):
-        rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners, 0.05, mtx, dist) #Estimate pose of each marker and return the values rvet and tvec---different from camera coefficients
+        rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners, 0.10, mtx, dist) #Estimate pose of each marker and return the values rvet and tvec---different from camera coefficients
         inverse_rvec = []
         inverse_tvec = []
 
@@ -142,9 +119,10 @@ while (True):
       
         aruco.drawDetectedMarkers(frame, corners) #Draw A square around the markers
 
-        s.send("{}/{}/{}".format(translational_vector[0], translational_vector[1], translational_vector[2]).encode())
+        s.send("{}/{}/{}".format(str(translational_vector[0])[:7], str(translational_vector[1])[:7], str(translational_vector[2])[:7]).encode())
     else:
-        s.send(b"n/n/n")
+        #s.send(b"n/n/n")
+        pass
 
     # Display the resulting frame
     cv2.imshow('frame',frame)
