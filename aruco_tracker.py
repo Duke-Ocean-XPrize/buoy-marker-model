@@ -60,9 +60,6 @@ while (True):
     #lists of ids and the corners beloning to each id
     corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
 
-    
-   # print(ids)
-
     font = cv2.FONT_HERSHEY_SIMPLEX #font for displaying text (below)
 
     if np.all(ids != None):
