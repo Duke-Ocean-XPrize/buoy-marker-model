@@ -27,17 +27,30 @@ socket.setsockopt_string(zmq.SUBSCRIBE, fiducial_filter)
 incoming_data = []
 k_window = 30
 
+def handle_null(incoming_data):
+     """
+     TODO: handle null errors
+     """
+
 def average_errors(incoming_data):
      """
-     get the error for x y z coords
+     TODO: get the error for x y z coords
      average error over k_window
      return results
      """
 
 def get_window(incoming_data):
+     """
+     TODO: do not count null if null items > j
+     """
      if len(incoming_data) > k_window:
           remove_item = incoming_data.pop()
           return remove_item 
+
+def weighted_values(incoming_data):
+     """
+     TODO: optionally weigth values in k_window
+     """
 
 def connect_vision():
      vision_data = socket.recv_string()
