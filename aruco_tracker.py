@@ -2,151 +2,122 @@ import numpy as np
 import cv2
 import cv2.aruco as aruco
 import glob
-import socket
+import math
+import yaml
+import zmq
 
-#ser = serial.Serial('/dev/ttyUSB0')
+context = zmq.Context()
+socket = context.socket(zmq.PUB)
+socket.bind("tcp://*:5556")
 
-print("I'm working...") 
+capture = cv2.VideoCapture(0)
+capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-#TCP_IP = '169.254.137.76'
-TCP_IP = '127.0.0.1'
-TCP_PORT = 5005
-BUFFER_SIZE = 1024
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((TCP_IP, TCP_PORT))
-
-print("I'm connected...") 
-
-
-
-cap = cv2.VideoCapture(0)
+system_id = "2"
 
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
 objp = np.zeros((6*7,3), np.float32)
 objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
 
-# Arrays to store object points and image points from all the images.
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
-images = glob.glob('calib_images/*.jpg')
+#Retrieving Distortion and 3D Matrices
+try:
+    calibration_file = open("calibration_data.yaml", 'r')
+    data_dict = yaml.load(calibration_file)
+    mtx = data_dict["mtx"]
+    dist = data_dict["dist"]
+except Exception as e:
+    print("Calibration Failure: {}".format(e))
 
+def inversePerspective(rvec, tvec): 
+    rvec, tvec = rvec.reshape((3, 1)), tvec.reshape((3, 1))
+    R, _ = cv2.Rodrigues(rvec)
+    R = np.matrix(R).T 
+    invTvec = np.dot(-R, np.matrix(tvec)) 
+    invRvec, _ = cv2.Rodrigues(R) 
+    invTvec = invTvec.reshape((1, 3)) 
+    invRvec = invRvec.reshape((1, 3)) 
+    return invRvec.tolist(), invTvec.tolist()
 
-for fname in images:
-    img = cv2.imread(fname)
-    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-    # Find the chess board corners
-    ret, corners = cv2.findChessboardCorners(gray, (7,6),None)
-    #print(corners)
-    #print(objpoints)
-
-    # If found, add object points, image points (after refining them)
-    if ret == True:
-        objpoints.append(objp)
-
-        corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
-        imgpoints.append(corners2)
-
-        # Draw and display the corners
-        img = cv2.drawChessboardCorners(img, (7,6), corners2,ret)
-
-
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
-
-
-while (True):
-    ret, frame = cap.read()
-    # operations on the frame come here
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
-    parameters = aruco.DetectorParameters_create()
-
-    #lists of ids and the corners beloning to each id
-    corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-
+def find_1D_midpoint(first_loc, second_loc):
+    return (first_loc + second_loc) / 2
     
-   # print(ids)
+def floor_midpoint(midpoint):
+    return (midpoint[0], midpoint[1])
 
-    font = cv2.FONT_HERSHEY_SIMPLEX #font for displaying text (below)
-
-    if np.all(ids != None):
-        rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners[0], 0.05, mtx, dist) #Estimate pose of each marker and return the values rvet and tvec---different from camera coefficients
-        #(rvec-tvec).any() # get rid of that nasty numpy value array error
-
-        topleftX = corners[0][0][0][0]
-        topleftY = corners[0][0][0][1]
-
-        toprightX = corners[0][0][1][0]
-        toprightY = corners[0][0][1][1]
-
-        bottomleftX = corners[0][0][2][0]
-        bottomlextY = corners[0][0][2][1]
-
-        bottomrightX = corners[0][0][3][0]
-        bottomrightY = corners[0][0][3][1]
-
-        distance = tvec[0][0][2]
+def avg_of_vectors(vector_list):
+    return sum(vector_list)/float(len(vector_list))
 
 
-        print("topleft  corner x {}".format(topleftX))
-        print("topleft corner y {}".format(topleftY))
+def find_marker():
+    print("FIDUCIAL SYSTEM UP ##########################")
+    while True:
+        ret, frame = capture.read()
+        # operations on the frame come here
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
+        parameters = aruco.DetectorParameters_create()
 
-        print("topright corner x {}".format(toprightX))
-        print("topright corner y {}".format(toprightY))
-
-        print("bottomleft corner x {}".format(bottomleftX))
-        print("bottomleft corner y {}".format(bottomlextY))
-
-        print("bottomright corner x {}".format(bottomrightX))
-        print("bottomright corner y {}".format(bottomrightY))
-
-        print("distance {}".format(distance))
-        
-        '''
-        s.send(b"/tly", {}.format(topleftX))
-        s.send(b"/tlx", "{}".format(topleftY))
-
-        s.send(b"/trx", '{}'.format(toprightX))
-        s.send(b"/try", '{}'.format(toprightY))
-
-        s.send(b"/blx", '{}'.format(bottomleftX))
-        s.send(b"/bly", '{}'.format(bottomlextY))
-
-        s.send(b"/brx", '{}'.format(bottomrightX))
-        s.send(b"/bry", '{}'.format(bottomrightY))
-        '''
-
-        midpointX = (topleftX  + bottomrightX)/2 
-        midpointY = (topleftY + bottomrightY)/2
-
-        
-
-        print("midpoint X: {}, Y: {}".format(midpointX, midpointY))
-        s.send("{}/{}/{}".format(midpointX, midpointY, distance).encode())
+        #lists of ids and the corners beloning to each id
+        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
 
 
-        aruco.drawAxis(frame, mtx, dist, rvec[0], tvec[0], 0.1) #Draw Axis
-        aruco.drawDetectedMarkers(frame, corners) #Draw A square around the markers
+        font = cv2.FONT_HERSHEY_SIMPLEX #font for displaying text (below)
 
+        if np.all(ids != None):
+            rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners, 0.10, mtx, dist) #Estimate pose of each marker and return the values rvet and tvec---different from camera coefficients
+            inverse_rvec = []
+            inverse_tvec = []
 
-        ###### DRAW ID #####
-        cv2.putText(frame, "Id: " + str(ids), (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
-    else:
-        print("midpoint X: n, Y: n")
-        s.send(b"/n/n/n")
+            for r, t in zip(rvec, tvec):
+                aruco.drawAxis(frame, mtx, dist, r, t, 0.1) #Draw Axis
+                i_rvec, i_tvec = inversePerspective(r[0], t[0])
+                inverse_rvec.append(i_rvec)
+                inverse_tvec.append(i_tvec)
 
+            marker_midpoints = []
+            for index, id in zip(range(len(ids)), ids):
+                topleftX = math.floor(corners[index][0][0][0])
+                topleftY = math.floor(corners[index][0][0][1])
+                toprightX = math.floor(corners[index][0][1][0])
+                toprightY = math.floor(corners[index][0][1][1])
+                bottomrightX = math.floor(corners[index][0][2][0])
+                bottomrightY = math.floor(corners[index][0][2][1])
+                bottomleftX = math.floor(corners[index][0][3][0])
+                bottomlextY = math.floor(corners[index][0][3][1])
+                midpoint = [[topleftX, topleftY], [toprightX, toprightY], [bottomrightX, bottomrightY], [bottomleftX, bottomlextY]]
+                ###### DRAW ID #####
+                marker_midpoints.append([midpoint[0], midpoint[1]])
+                
+            num_of_markers = len(marker_midpoints)
+            visual_center_of_markers = (-1, -1)
+            translational_vector = (-1, -1, -1)
 
+            if num_of_markers == 0:
+                pass
+            elif num_of_markers == 1:
+                visual_center_of_markers = floor_midpoint(marker_midpoints[0])
+                translational_vector = (inverse_tvec[0][0][0], inverse_tvec[0][0][1], inverse_tvec[0][0][2])
+            elif num_of_markers == 2:
+                visual_center_of_markers = floor_midpoint((find_1D_midpoint(marker_midpoints[0][0], marker_midpoints[1][0]), find_1D_midpoint(marker_midpoints[0][1], marker_midpoints[1][1])))
+                translational_vector = (find_1D_midpoint(inverse_tvec[0][0][0], inverse_tvec[1][0][0]), find_1D_midpoint(inverse_tvec[0][0][1], inverse_tvec[1][0][1]), find_1D_midpoint(inverse_tvec[0][0][2], inverse_tvec[1][0][2]))
+            else:
+                x_values = []
+                y_values = []
+                z_values = []
+                for index in range(len(inverse_tvec[0])):
+                    x_values.append(inverse_tvec[index][0][0])
+                    y_values.append(inverse_tvec[index][0][1])
+                    z_values.append(inverse_tvec[index][0][2])
+                visual_center_of_markers = floor_midpoint(polylabel([marker_midpoints]))
+                translational_vector = (avg_of_vectors(x_values), avg_of_vectors(y_values), avg_of_vectors(z_values))
 
-        # Display the resulting frame
-    cv2.imshow('frame',frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+            socket.send_string("{},{},{},{}".format(system_id,str(translational_vector[0])[:7], str(translational_vector[1])[:7], str(translational_vector[2])[:7]))
 
-# When everything done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    find_marker()
