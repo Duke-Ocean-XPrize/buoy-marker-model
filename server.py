@@ -24,36 +24,49 @@ socket.connect("tcp://localhost:{}".format(fiducial_port))
 socket.setsockopt_string(zmq.SUBSCRIBE, yolo_filter)
 socket.setsockopt_string(zmq.SUBSCRIBE, fiducial_filter)
 
+incoming_data = []
+k_window = 30
 
-def average_errors():
+def average_errors(incoming_data):
+     """
+     get the error for x y z coords
+     average error over k_window
+     return results
+     """
 
-
+def get_window(incoming_data):
+     if len(incoming_data) > k_window:
+          remove_item = incoming_data.pop()
+          return remove_item 
 
 def connect_vision():
-    vision_data = socket.recv_string()
-    vision_id, midpointX, midpointY, raw_distance = vision_data.split(",")
-    midpointX = float(midpointX)
-    midpointY = float(midpointY)
-    raw_distance = float(raw_distance)
-    print("{},{},{},{}".format(vision_id,midpointX, midpointY, raw_distance))
+     vision_data = socket.recv_string()
+     vision_id, midpointX, midpointY, raw_distance = vision_data.split(",")
+     midpointX = float(midpointX)
+     midpointY = float(midpointY)
+     raw_distance = float(raw_distance)
 
-    x_dist = abs(midpointX - viewport_x_size)
-    y_dist = abs(midpointY - viewport_y_size)
+     incoming_data.append([midpointX, midpointY, raw_distance])
+     #print("{},{},{},{}".format(vision_id,midpointX, midpointY, raw_distance))
+     print(get_window(incoming_data))
 
-    if midpointX > x_center_threshold:
-        print("move RIGHT")
-    else:
-        print("move LEFT")
+     x_dist = abs(midpointX - viewport_x_size)
+     y_dist = abs(midpointY - viewport_y_size)
 
-    if midpointY < x_center_threshold:
-        print("move DOWN")
-    else:
-        print("move UP")
+     if midpointX > x_center_threshold:
+          print("move RIGHT")
+     else:
+          print("move LEFT")
 
-    if x_dist > drop_thresh and y_dist < drop_thresh:
-        print("I'M LANDING")
-    
-    return raw_distance
+     if midpointY < x_center_threshold:
+          print("move DOWN")
+     else:
+          print("move UP")
 
+     if x_dist > drop_thresh and y_dist < drop_thresh:
+          print("I'M LANDING")
+     
+     return raw_distance
+     
 while True:
     connect_vision()
