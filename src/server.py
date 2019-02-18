@@ -26,11 +26,10 @@ socket.setsockopt_string(zmq.SUBSCRIBE, fiducial_filter)
 
 incoming_data = []
 k_window = 30
-
-def handle_null(incoming_data):
-     """
-     TODO: handle null errors
-     """
+input_min = 1
+input_max = 30
+output_min = 100
+output_max = 1000
 
 def average_errors(incoming_data):
      """
@@ -38,19 +37,28 @@ def average_errors(incoming_data):
      average error over k_window
      return results
      """
+def remove_null(data):
+    output = [x for x in data if x !='null']
+    return output
 
-def get_window(incoming_data):
-     """
-     TODO: do not count null if null items > j
-     """
-     if len(incoming_data) > k_window:
-          remove_item = incoming_data.pop()
-          return remove_item 
+def get_range(value, inputMin, inputMax, outputMin, outputMax):
+    intputSpan = inputMax - inputMin
+    outputSpan = outputMax - outputMin
+    valueScaled = float(value - inputMin) / float(intputSpan)
+    return outputMin + (valueScaled * outputSpan)
 
-def weighted_values(incoming_data):
-     """
-     TODO: optionally weigth values in k_window
-     """
+def get_window(data, n):
+    tranformed_data = get_range(data, 1, 30, 100, 1000)
+    input_arr.append(tranformed_data)
+    if len(input_arr) > n:
+        del input_arr[0]
+    return input_arr
+
+def weighted_sum(data):
+    window = get_window(data, 4)
+    sorted_window = sorted(window, reverse = True)
+    return sorted_window
+
 
 def connect_vision():
      vision_data = socket.recv_string()
@@ -61,11 +69,16 @@ def connect_vision():
 
      incoming_data.append([midpointX, midpointY, raw_distance])
      #print("{},{},{},{}".format(vision_id,midpointX, midpointY, raw_distance))
-     print(get_window(incoming_data))
+     #print(incoming_data)
+     new_generator = get_window(incoming_data)
+     for each in new_generator:
+          print(each)
+     #print(get_window(incoming_data))
 
      x_dist = abs(midpointX - viewport_x_size)
      y_dist = abs(midpointY - viewport_y_size)
 
+     """
      if midpointX > x_center_threshold:
           print("move RIGHT")
      else:
@@ -79,7 +92,11 @@ def connect_vision():
      if x_dist > drop_thresh and y_dist < drop_thresh:
           print("I'M LANDING")
      
-     return raw_distance
      
-while True:
-    connect_vision()
+     return raw_distance
+     """
+     
+
+if __name__ == "__main__":
+     while True:
+          connect_vision()
