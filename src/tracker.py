@@ -54,6 +54,40 @@ def avg_of_vectors(vector_list):
     return sum(vector_list)/float(len(vector_list))
 
 
+def rotationMatrix(rotation) :
+    """
+    # Checks if a matrix is a valid rotation matrix.
+    """
+    Rt = np.transpose(rotation)
+    shouldBeIdentity = np.dot(Rt, rotation)
+    I = np.identity(3, dtype = R.dtype)
+    n = np.linalg.norm(I - shouldBeIdentity)
+    return n < 1e-6
+ 
+
+
+def rotationMatrixToEulerAngles(rotation) :
+    """
+    Calculates rotation matrix to euler angles
+    """
+    assert(isRotationMatrix(rotation))
+    sy = math.sqrt(rotation[0,0] * rotation[0,0] +  rotation[1,0] * rotation[1,0])
+     
+    singular = sy < 1e-6
+ 
+    if  not singular :
+        x = math.atan2(rotation[2,1] , rotation[2,2])
+        y = math.atan2(-rotation[2,0], sy)
+        z = math.atan2(rotation[1,0], rotation[0,0])
+    else :
+        x = math.atan2(-rotation[1,2], rotation[1,1])
+        y = math.atan2(-rotation[2,0], sy)
+        z = 0
+ 
+    return np.array([x, y, z])
+
+
+
 def find_marker():
     print("FIDUCIAL SYSTEM UP ##########################")
     while True:
