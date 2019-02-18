@@ -55,6 +55,9 @@ def get_window(data, n):
     return input_arr
 
 def weighted_sum(data):
+    """
+    TODO: Needs to return weighted sum of error from coords
+    """
     window = get_window(data, 4)
     sorted_window = sorted(window, reverse = True)
     return sorted_window
