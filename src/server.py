@@ -81,7 +81,6 @@ def connect_vision():
      x_dist = abs(midpointX - viewport_x_size)
      y_dist = abs(midpointY - viewport_y_size)
 
-     """
      if midpointX > x_center_threshold:
           print("move RIGHT")
      else:
@@ -97,7 +96,6 @@ def connect_vision():
      
      
      return raw_distance
-     """
      
 
 if __name__ == "__main__":
