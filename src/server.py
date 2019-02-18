@@ -48,7 +48,7 @@ def get_range(value, inputMin, inputMax, outputMin, outputMax):
     return outputMin + (valueScaled * outputSpan)
 
 def get_window(data, n):
-    tranformed_data = get_range(data, 1, 30, 100, 1000)
+    tranformed_data = get_range(data, input_min, input_max, output_min, output_max)
     input_arr.append(tranformed_data)
     if len(input_arr) > n:
         del input_arr[0]
@@ -58,7 +58,7 @@ def weighted_sum(data):
     """
     TODO: Needs to return weighted sum of error from coords
     """
-    window = get_window(data, 4)
+    window = get_window(data, k_window)
     sorted_window = sorted(window, reverse = True)
     return sorted_window
 
